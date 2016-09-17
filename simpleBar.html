@@ -1,0 +1,315 @@
+<!Doctype HTML>
+<html>
+    <head>
+        <link href="main.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+        <script type="text/javascript" src="d3.min.js"></script>
+        <script type="text/javascript">
+            
+            var w = 800;
+            var h = 450;
+            
+            var margin = {
+                top: 40,
+                bottom: 100,
+                left: 80,
+                right: 40
+            };
+
+            var width = w - margin.left - margin.right;
+            var height = h - margin.top - margin.bottom;
+
+            // var data = [132, 71, 337, 93, 78, 43, 20, 16, 30, 8, 17, 21];
+
+            var data = [
+                {key: 'Glazed', value: 132},
+                {key: 'Jelly', value: 71},
+                {key: 'Holes', value: 337},
+                {key: 'Sprinkles', value: 93},
+                {key: 'Crumb', value: 78},
+                {key: 'Chocolate', value: 43},
+                {key: 'Coconut', value: 20},
+                {key: 'Cream', value: 16},
+                {key: 'Cruller', value: 30},
+                {key: 'Eclair', value: 8},
+                {key: 'Fritter', value: 17},
+                {key: 'Bearclaw', value: 21}
+                // {key: 'Glazed1', value: 132},
+                // {key: 'Jelly1', value: 71},
+                // {key: 'Holes1', value: 337},
+                // {key: 'Sprinkles1', value: 93},
+                // {key: 'Crumb1', value: 78},
+                // {key: 'Chocolate1', value: 43},
+                // {key: 'Coconut1', value: 20},
+                // {key: 'Cream1', value: 16},
+                // {key: 'Cruller1', value: 30},
+                // {key: 'Eclai1r', value: 8},
+                // {key: 'Fritter1', value: 17},
+                // {key: 'Bearclaw1', value: 21}
+            ];
+
+            var x = d3.scale.ordinal()
+                                    .domain(data.map(function(entry){
+                                        return entry.key;
+                                    })).rangeBands([0, width]);
+
+            var y = d3.scale.linear()
+                        .domain([0, d3.max(data, function(d){
+                            return d.value;
+                        })])
+                        .range([height, 0]);
+
+            var ordinalColorScale = d3.scale.category20();
+
+            var xAxis = d3.svg.axis()
+                            .scale(x)
+                            .orient('bottom');
+
+            var yAxis = d3.svg.axis()
+                            .scale(y)
+                            .orient('left');
+            
+            var yGridLines = d3.svg.axis()
+                                .scale(y)
+                                .tickSize(-width, 0, 0)
+                                .tickFormat('')
+                                .orient('left');
+
+            var xGridLines = d3.svg.axis()
+                                .scale(x)
+                                .tickSize(height, 0, 0)
+                                .tickFormat('')
+                                .orient('bottom');
+
+
+            var linearColorScale = d3.scale.linear()
+                                    .domain([0, data.length])
+                                    .range(['#572500', '#f68026']);
+
+            var svg = d3.select('body').append('svg')
+                        .attr('id', 'chart')
+                        .attr('width', w)
+                        .attr('height', h);
+
+            var chart = svg.append('g')
+                        .classed('display', true)
+                        .attr('transform', 'translate('+margin.left+','+margin.top+')');
+            
+            var controls = d3.select('body')
+                                .append('div')
+                                .attr('id', 'controls');
+
+            var sort_btn = controls.append('button')
+                                .html('Sort Data : ascending')
+                                .attr('state', 0);
+            
+            function drawAxis(param){
+                //draw the grid lines
+                if(param.initialize === true){
+                    this.append('g')
+                    .call(param.gridlines.y)
+                    .classed('grid-y gridline', true)
+                    .attr('transform', 'translate(0,0)');
+
+                    this.append('g')
+                        .call(param.gridlines.x)
+                        .classed('grid-x gridline', true)
+                        .attr('transform', 'translate(0,0)');
+
+                    this.append('g')
+                        .classed('x axis', true)
+                        .attr('transform', 'translate('+0+','+height+')')
+                        .call(param.axis.x)
+                        .selectAll('text')
+                            .classed('x-axis-label', true)
+                            .style('text-anchor', 'end')
+                            .attr('dx', -8)
+                            .attr('dy', 8)
+                            .attr('transform', 'translate(0,0) rotate(-45)');
+
+                    this.append('g')
+                        .classed('y axis', true)
+                        .attr('transform', 'translate(0,0)')
+                        .call(param.axis.y);
+
+                    this.select('.y.axis')
+                        .append('text')
+                        .attr('x', 0)
+                        .attr('y', 0)
+                        .style('text-anchor', 'middle')
+                        .attr('transform', 'translate(-40,'+(height/2)+') rotate(-90)')
+                        .text('Units Sold');
+
+                    this.select('.x.axis')
+                        .append('text')
+                        .attr('x', 0)
+                        .attr('y', 0)
+                        .style('text-anchor', 'middle')
+                        .attr('transform','translate('+width/2+',80)')
+                        .text('Donut Type');
+                }else if(param.initialize === false){
+                    this.selectAll('g.x.axis')
+                        .transition()
+                        .duration(500)
+                        .ease('bounce')
+                        .delay(500)
+                        .call(param.axis.x);
+                    
+                    this.selectAll('.x-axis-label')
+                        .style('text-anchor', 'end')
+                            .attr('dx', -8)
+                            .attr('dy', 8)
+                            .attr('transform', 'translate(0,0) rotate(-45)');
+
+                    this.selectAll('g.y.axis')
+                        .call(param.axis.y);
+                }
+            }
+
+            function plot(param){
+                
+                x.domain(data.map(function(entry){
+                    return entry.key;
+                }));
+
+                y.domain([0, d3.max(data, function(d){
+                    return d.value;
+                })]);
+
+                //draw the axis
+                drawAxis.call(this, param);
+
+
+                //enter()
+                this.selectAll('.bar')
+                .data(param.data)
+                .enter()
+                    .append('rect')
+                    .classed('bar', true)
+                    .on('mouseover', function(d, i){
+                        d3.select(this).style('fill', 'yellow');
+                    })
+                    .on('mousemove', function(d, i){
+
+                    })
+                    .on('mouseout', function(d, i){
+                        d3.select(this).style('fill', ordinalColorScale(i));
+                    });
+
+                this.selectAll('.bar-label')
+                    .data(param.data)
+                    .enter()
+                        .append('text')
+                        .classed('bar-label', true);
+                //update
+                this.selectAll('.bar')    
+                    .transition()
+                    .duration(500)
+                    .ease('bounce')
+                    .delay(200)
+                    .attr('x', function(d, i){
+                        return x(d.key);
+                    })
+                    .attr('y', function(d, i){
+                        return y(d.value);
+                    })
+                    .attr('width', function(d, i){
+                        return x.rangeBand();
+                    })
+                    .attr('height', function(d, i){
+                        return height - y(d.value);
+                    })
+                    .style('fill', function(d, i){
+                        //return linearColorScale(i);
+                        return ordinalColorScale(i);
+                    });
+
+                this.selectAll('.bar-label')
+                    .transition()
+                    .duration(500)
+                    .ease('bounce')
+                    .delay(200)
+                    .attr('x', function(d, i){
+                            return x(d.key) + (x.rangeBand()/2);
+                        })
+                        .attr('y', function(d, i){
+                            return y(d.value);
+                        })
+                        .attr('dx', function(d, i){
+                            return -4;
+                        })
+                        .attr('dy', function(d, i){
+                            return -6
+                        })
+                        .text(function(d, i){
+                            return d.value;
+                        });
+
+                //exit()
+                this.selectAll('.bar')
+                    .data(param.data)
+                    .exit()
+                    .remove();
+                
+                this.selectAll('.bar-label')
+                    .data(param.data)
+                    .exit()
+                    .remove();
+              
+            }
+            
+            sort_btn.on('click', function(){
+                var self = d3.select(this);
+                var ascending = function(a, b){
+                    return a.value - b.value;
+                };
+
+                var descending = function(a, b){
+                    return b.value - a.value;
+                };
+
+                var state = +self.attr('state');
+                var txt = 'Sort data: ';
+                if(state === 0){
+                    state = 1;
+                    txt += 'descending';
+                    data.sort(descending);
+                }else if(state === 1){
+                    state = 0;
+                    txt += 'ascending';
+                    data.sort(ascending);
+                }
+
+                self.attr('state', state);
+                self.html(txt);
+                plot.call(chart, {
+                    data: data,
+                    axis:{
+                        x: xAxis,
+                        y: yAxis
+                    },
+                    gridlines: {
+                        x: xGridLines,
+                        y: yGridLines
+                    },
+                    initialize: false
+                });
+            });
+
+            plot.call(chart, {
+                data: data,
+                axis:{
+                    x: xAxis,
+                    y: yAxis
+                },
+                gridlines: {
+                    x: xGridLines,
+                    y: yGridLines
+                },
+                initialize: true
+            });
+            
+        </script>
+    </body>
+</html>
